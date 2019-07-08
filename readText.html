@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Read IP's from file</title>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+    <style>
+        [type="file"] {
+            height: 0;
+            overflow: hidden;
+            width: 0;
+        }
+
+        [type="file"]+label {
+            background: #f15d22;
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+            cursor: pointer;
+            display: inline-block;
+            font-family: 'Poppins', sans-serif;
+            font-size: inherit;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            outline: none;
+            padding: 1rem 50px;
+            position: relative;
+            vertical-align: middle;
+        }
+
+        [type="file"]+label:hover {
+            background-color: #d3460d;
+        }
+
+        [type="file"]+label.btn-x {
+            background-color: #ee6d9e;
+            border-radius: 0;
+            overflow: hidden;
+        }
+
+        [type="file"]+label.btn-x:hover {
+            background-color: #ae144f;
+        }
+
+        body {
+            text-align: center;
+        }
+
+        .ip-list-item:nth-child(-n+5) {
+            /*First five elements*/
+            padding: 20px 0;
+            margin-bottom: 10px;
+            background: #ae144f;
+        }
+
+        ul {
+            counter-reset: li;
+            list-style: none;
+            font-size: 22px;
+            font-family: 'IBM plex mono', sans-serif;
+            padding: 0;
+            margin-bottom: 4em;
+            width: 720px;
+            margin: 0 auto;
+            height: 500px;
+            overflow-y: scroll;
+        }
+
+        ul li {
+            position: relative;
+            display: block;
+            padding: .4em .4em .4em 2em;
+            margin: .5em 0;
+            background: #ee6d9e;
+            color: white;
+            text-decoration: none;
+            box-shadow: inset 0.5em 0 #e5181887;
+            -webkit-transition: box-shadow 1s;
+            transition: box-shadow 1s;
+        }
+
+        li:hover {
+            box-shadow: inset 2em 0 #e51818;
+        }
+    </style>
+</head>
+
+<body>
+    <input type="file" name="text" id="inputText" accept="text/plain">
+    <label class="btn-x" for="inputText" />choose a file</label>
+    <script>
+        $(document).ready(function () {
+            if (!(window.File && window.FileReader && window.FileList && window.Blob)) {
+                $("#inputText").hide();
+                alert("API NOT FULLY SUPPORTED :c");
+            }
+            $("#inputText").on("change", function () {
+                var fileSelected = $('#inputText').prop('files')[0];
+                if (fileSelected) {
+                    var fr = new FileReader();
+                    fr.onload = processFile;
+                    fr.readAsText(fileSelected, 'CP50220'); //support accents, katakana, hiragana and kanji
+                } else {
+                    console.log("failed");
+                }
+            });
+        });
+        function processFile(e) {
+            var textOutput = e.target.result;
+            var matchedArray = textOutput.match(/((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/g); //regex for IPv4
+            var positionsArray = [];
+            var finalArray = [];
+            var counter = 0;
+            var placeHolder;
+            if (matchedArray && matchedArray.length>0) {
+                matchedArray.forEach(function (key, val) {
+                    //first we create an "array" (object really) with the count on it
+                    if (!positionsArray[key]) {
+                        positionsArray[key] = [];
+                        positionsArray[key]['count'] = 1;
+                    } else {
+                        // Same occurrences found.
+                        positionsArray[key]['count']++;
+                    }
+                });
+                var index = 0;
+                for (var property in positionsArray) {
+                    //then we iterate our "array", but since is really an object we use for in for that
+                    finalArray[index] = [];
+                    finalArray[index]['ip'] = property.toString();
+                    finalArray[index]['count'] = positionsArray[property].count;
+                    index++;
+                }
+                //now we have a beautiful and readable structure, last step is to sort
+                finalArray.sort(function (a, b) {
+                    return b.count - a.count;
+                });
+                $("body").append("<ul id='ipList'></ul>");
+                for (var i = 0; i < finalArray.length; i++) {
+                    var htmlStr = "<li class='ip-list-item'>The ip: " + finalArray[i]['ip'] + " appeared " + finalArray[i]['count'] +
+                        (finalArray[i]['count'] > 1 ? " times" : " time") + "</li>";
+                    $("#ipList").append(htmlStr);
+                }
+            }else{
+                alert("no IP's found");
+            }
+        }
+    </script>
+</body>
+
+</html>
